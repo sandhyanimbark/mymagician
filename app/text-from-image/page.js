@@ -13,59 +13,59 @@ export default function TextFromImage() {
   }, []);
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-  
+    e.preventDefault();
+    setLoading(true);  // Start loading state
+
     if (!file || !text) {
-      console.error('Validation Error: No file or text provided')
-      alert('Please select an image and provide text')
-      setLoading(false)
-      return
+      console.error('Validation Error: No file or text provided');
+      alert('Please select an image and provide text');
+      setLoading(false);  // Stop loading if validation fails
+      return;
     }
-  
+
     try {
       // Sanitize the file name, prefix with timestamp
-      const sanitizedFileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-  
+      const sanitizedFileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+
       // Log file size for debugging
-      console.log('File size:', file.size)
-      console.log('Attempting to upload file:', sanitizedFileName)
-      console.log('Associated text:', text)
-  
-      // Upload image to Supabase storage
+      console.log('File size:', file.size);
+      console.log('Attempting to upload file:', sanitizedFileName);
+      console.log('Associated text:', text);
+
+      // Upload image to Supabase storage, without specifying 'public/' twice
       const { data: storageData, error: storageError } = await supabase.storage
         .from('images')
-        .upload(`public/${sanitizedFileName}`, file)
-  
+        .upload(sanitizedFileName, file);  // Remove 'public/' from here
+
       if (storageError) {
-        console.error('Error uploading image:', storageError.message)
-        setLoading(false)
-        return
+        console.error('Error uploading image:', storageError.message);
+        setLoading(false);
+        return;
       }
-  
-      console.log('Image uploaded successfully:', storageData)
-  
-      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${storageData.path}`
-      console.log('Generated Image URL:', imageUrl)
-  
+
+      console.log('Image uploaded successfully:', storageData);
+
+      // The generated image URL, Supabase automatically includes the public folder
+      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/${storageData.path}`;
+      console.log('Generated Image URL:', imageUrl);
+
       // Insert image URL and associated text into the database
       const { error: insertError, data: insertData } = await supabase
         .from('image_text_pairs')
-        .insert([{ image_url: imageUrl, text_content: text }])
-  
+        .insert([{ image_url: imageUrl, text_content: text }]);
+
       if (insertError) {
-        console.error('Error inserting data:', insertError.message)
+        console.error('Error inserting data:', insertError.message);
       } else {
-        console.log('Insert successful:', insertData)
-        alert('Image and text saved successfully!')
+        console.log('Insert successful:', insertData);
+        alert('Image and text saved successfully!');
       }
     } catch (error) {
-      console.error('Unexpected error:', error.message)
+      console.error('Unexpected error:', error.message);
     }
-  
-    setLoading(false)
-  }
-  
+
+    setLoading(false);  // Stop loading state
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-purple-100 via-purple-300 to-purple-500">
@@ -111,5 +111,5 @@ export default function TextFromImage() {
         </button>
       </form>
     </div>
-  )
+  );
 }
