@@ -1,79 +1,129 @@
-'use client'
-import { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+'use client';
+import { useState, useRef } from 'react';
+import { supabase } from '../../lib/supabaseClient';  // Ensure the path to your Supabase client is correct
 
-export default function TextFromImage() {
-  const [file, setFile] = useState(null)
-  const [text, setText] = useState('')
-  const [loading, setLoading] = useState(false)
+export default function UploadImage() {
+  const [imageFile, setImageFile] = useState(null);  // State to store the selected image file
+  const [text, setText] = useState('');  // State to store associated text
+  const [loading, setLoading] = useState(false);  // Loading state
+  const [successMessage, setSuccessMessage] = useState('');  // Success message
+  const [errorMessage, setErrorMessage] = useState('');  // Error message
 
-  useEffect(() => {
-    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log('Supabase Anon Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  }, []);
+  const fileInputRef = useRef(null);  // Ref for the file input field
 
-  const handleSubmit = async (e) => {
+  // Handle image upload
+  const handleImageUpload = async (e) => {
     e.preventDefault();
-    setLoading(true);  // Start loading state
+    setLoading(true);  // Start loading
+    setSuccessMessage('');
+    setErrorMessage('');
 
-    if (!file || !text) {
-      console.error('Validation Error: No file or text provided');
-      alert('Please select an image and provide text');
-      setLoading(false);  // Stop loading if validation fails
+    // Check if both the image and text are provided
+    if (!imageFile || text.trim() === '') {
+      setErrorMessage('Please provide both an image and associated text.');
+      setLoading(false);
       return;
     }
 
-    try {
-      // Sanitize the file name, prefix with timestamp
-      const sanitizedFileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    // Check for duplicate image or text
+    const fileName = `${Date.now()}_${imageFile.name}`;
+    const duplicateCheck = await checkForDuplicates(fileName, text.trim());
 
-      // Log file size for debugging
-      console.log('File size:', file.size);
-      console.log('Attempting to upload file:', sanitizedFileName);
-      console.log('Associated text:', text);
-
-      // Upload image to Supabase storage, without specifying 'public/' twice
-      const { data: storageData, error: storageError } = await supabase.storage
-        .from('images')
-        .upload(sanitizedFileName, file);  // Remove 'public/' from here
-
-      if (storageError) {
-        console.error('Error uploading image:', storageError.message);
-        setLoading(false);
-        return;
-      }
-
-      console.log('Image uploaded successfully:', storageData);
-
-      // The generated image URL, Supabase automatically includes the public folder
-      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/${storageData.path}`;
-      console.log('Generated Image URL:', imageUrl);
-
-      // Insert image URL and associated text into the database
-      const { error: insertError, data: insertData } = await supabase
-        .from('image_text_pairs')
-        .insert([{ image_url: imageUrl, text_content: text }]);
-
-      if (insertError) {
-        console.error('Error inserting data:', insertError.message);
-      } else {
-        console.log('Insert successful:', insertData);
-        alert('Image and text saved successfully!');
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error.message);
+    if (duplicateCheck) {
+      setErrorMessage(duplicateCheck);  // Display duplicate error message
+      setLoading(false);
+      return;
     }
 
-    setLoading(false);  // Stop loading state
+    // Upload the image to Supabase storage (ensure you have the storage bucket set up in Supabase)
+    const { data: uploadData, error: uploadError } = await supabase
+      .storage
+      .from('images')  // Replace 'images' with your storage bucket name
+      .upload(`public/${fileName}`, imageFile);
+
+    if (uploadError) {
+      console.error('Error uploading image:', uploadError);
+      setErrorMessage('Failed to upload image. Please try again.');
+      setLoading(false);
+      return;
+    }
+
+    // Get the public URL of the uploaded image
+    const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/${uploadData.path}`;
+
+    // Save the image URL and associated text in the Supabase database
+    const { error: insertError } = await supabase
+      .from('image_text_pairs')  // Replace with your actual table name
+      .insert([{ image_url: imageUrl, text_content: text.trim() }]);
+
+    if (insertError) {
+      console.error('Error inserting data:', insertError);
+      setErrorMessage('Failed to save image and text. Please try again.');
+      setLoading(false);
+      return;
+    }
+
+    setSuccessMessage('Image and text uploaded successfully!');
+    setImageFile(null);  // Clear the file input after successful upload
+    setText('');  // Clear the text input
+    setLoading(false);  // Stop loading
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';  // Clear the file input field
+    }
+  };
+
+  // Function to check for duplicates in the database
+  const checkForDuplicates = async (fileName, textContent) => {
+    try {
+      // Check for duplicate image in the database
+      const { data: imageData, error: imageError } = await supabase
+        .from('image_text_pairs')
+        .select('image_url')
+        .like('image_url', `%${fileName}%`);
+
+      if (imageData.length > 0) {
+        return 'We have the same image already uploaded in our DB.';
+      }
+
+      // Check for duplicate text in the database
+      const { data: textData, error: textError } = await supabase
+        .from('image_text_pairs')
+        .select('text_content')
+        .eq('text_content', textContent);
+
+      if (textData.length > 0) {
+        return 'We already have the associated text in our DB.';
+      }
+
+      return null;  // No duplicates found
+    } catch (error) {
+      console.error('Error checking for duplicates:', error);
+      return 'Error occurred while checking for duplicates. Please try again.';
+    }
+  };
+
+  // Handle file input change
+  const handleFileChange = (e) => {
+    setImageFile(e.target.files[0]);
+  };
+
+  // Remove the selected file
+  const handleRemoveFile = () => {
+    setImageFile(null);  // Clear the file from state
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';  // Clear the file input field
+    }
+    setSuccessMessage('');  // Clear any previous success message
+    setErrorMessage('');  // Clear any previous error message
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-purple-100 via-purple-300 to-purple-500">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-purple-100 via-purple-300 to-purple-500 p-4">
       <h1 className="text-4xl font-extrabold text-white mb-8">
         Upload Image and Associate Text
       </h1>
       <form
-        onSubmit={handleSubmit}
+        onSubmit={handleImageUpload}
         className="bg-white p-8 rounded-lg shadow-lg space-y-6 w-full max-w-lg"
       >
         <div className="flex flex-col">
@@ -82,10 +132,25 @@ export default function TextFromImage() {
           </label>
           <input
             type="file"
-            accept="image/*" // Ensure that only images are accepted
-            onChange={(e) => setFile(e.target.files[0])}
+            accept="image/*"
+            onChange={handleFileChange}
+            ref={fileInputRef}  // Attach the ref to the file input
             className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
+
+          {/* Show the selected file name and a remove button */}
+          {imageFile && (
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-gray-700">{imageFile.name}</p>
+              <button
+                type="button"
+                onClick={handleRemoveFile}
+                className="text-red-600 font-semibold hover:underline"
+              >
+                Remove
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col">
@@ -96,20 +161,27 @@ export default function TextFromImage() {
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Type the text associated with the image"
+            placeholder="Enter associated text"
             className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
         </div>
 
         <button
           type="submit"
-          className={`w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold transition duration-300 ease-in-out transform hover:scale-105 hover:bg-purple-700 ${loading ? 'opacity-50' : ''
-            }`}
+          className={`w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold transition duration-300 ease-in-out transform hover:scale-105 hover:bg-purple-700 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
           disabled={loading}
         >
           {loading ? 'Uploading...' : 'Upload Image and Text'}
         </button>
       </form>
+
+      {/* Success or error messages */}
+      {successMessage && (
+        <p className="mt-4 text-green-600">{successMessage}</p>
+      )}
+      {errorMessage && (
+        <p className="mt-4 text-red-600">{errorMessage}</p>
+      )}
     </div>
   );
 }
