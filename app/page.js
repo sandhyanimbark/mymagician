@@ -8,22 +8,12 @@ export default function Home() {
         Welcome to the Image-Text App!
       </h1>
 
-      {/* Grid Layout for Options */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full">
+      {/* Centered Grid Layout for Options */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full">
         
-        {/* Option 1: Add Image and Text */}
-        <Link href="/text-from-image">
-          <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 cursor-pointer text-center">
-            <h2 className="text-2xl font-semibold text-purple-600 mb-4">
-              Add Image and Associated Text
-            </h2>
-            <p className="text-gray-700">Upload an image and associate it with text.</p>
-          </div>
-        </Link>
-
-        {/* Option 2: Check Image by Searching Text */}
+        {/* Option 1: Check Image by Searching Text */}
         <Link href="/image-from-text">
-          <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 cursor-pointer text-center">
+          <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 cursor-pointer text-center flex flex-col justify-center h-48">
             <h2 className="text-2xl font-semibold text-purple-600 mb-4">
               Check Image by Searching Text
             </h2>
@@ -31,9 +21,9 @@ export default function Home() {
           </div>
         </Link>
 
-        {/* Option 3: Check Associated Text by Uploading Image */}
+        {/* Option 2: Check Associated Text by Uploading Image */}
         <Link href="/check-image">
-          <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 cursor-pointer text-center">
+          <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 cursor-pointer text-center flex flex-col justify-center h-48">
             <h2 className="text-2xl font-semibold text-purple-600 mb-4">
               Check Associated Text by Uploading Image
             </h2>

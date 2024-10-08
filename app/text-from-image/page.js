@@ -175,13 +175,12 @@ export default function UploadImage() {
           {loading ? 'Uploading...' : 'Upload Image and Text'}
         </button>
       </form>
-
-      {/* Back Button Below Form */}
-      <button
+        {/* Back Button Below Form */}
+        <button
         className="mt-6 bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-600 transition duration-300 ease-in-out"
-        onClick={() => router.push('/')}  // Redirect to the homepage
+        onClick={() => router.push('/super-admin')}  // Redirect to the homepage
       >
-        Back to Home
+        Back to Super Admin Dashboard
       </button>
     </div>
   );
