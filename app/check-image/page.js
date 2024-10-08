@@ -9,6 +9,7 @@ export default function CheckImagePage() {
   const [imageFile, setImageFile] = useState(null);  // State to store the selected image file
   const [associatedText, setAssociatedText] = useState('');  // Associated text state
   const [loading, setLoading] = useState(false);  // Loading state
+  const [imageChecked, setImageChecked] = useState(false);  // State to check if the image is checked
   const fileInputRef = useRef(null);  // Ref for the file input field
   const router = useRouter();  // Initialize the useRouter hook
 
@@ -20,7 +21,7 @@ export default function CheckImagePage() {
 
     // Check if an image is selected
     if (!imageFile) {
-      toast.error('Please upload an image to check.');
+      toast.error('Aree baba image toh add kriyee phir text generate hoga na ji!');
       setLoading(false);
       return;
     }
@@ -41,12 +42,13 @@ export default function CheckImagePage() {
       return;
     }
 
-    // If the image is found, display the associated text
+    // If the image is found, display the associated text and hide the button
     if (imageData && imageData.length > 0) {
       setAssociatedText(imageData[0].text_content);
-      toast.success('Associated text found!');
+      setImageChecked(true);  // Image has been checked
+      toast.success('Mil gayaaa textt!');
     } else {
-      toast.error('No associated text found for this image.');
+      toast.error('Oyee ae toh system me nakooo! make sure to add the exact image haan ');
     }
 
     setLoading(false);
@@ -55,6 +57,7 @@ export default function CheckImagePage() {
   // Handle file input change
   const handleFileChange = (e) => {
     setImageFile(e.target.files[0]);
+    setImageChecked(false);  // Reset the image check state when a new file is selected
   };
 
   // Remove the selected file
@@ -64,7 +67,8 @@ export default function CheckImagePage() {
       fileInputRef.current.value = '';  // Clear the file input field
     }
     setAssociatedText('');  // Clear associated text
-    toast.success('Image removed successfully.');
+    setImageChecked(false);  // Reset the image check state
+    toast.success('Han remove kr diya image ab phir se try kriyeeee.');
   };
 
   return (
@@ -82,47 +86,58 @@ export default function CheckImagePage() {
           <label className="text-gray-700 font-semibold mb-2">
             Choose an Image
           </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            ref={fileInputRef}  // Attach the ref to the file input
-            className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
+          <div className="relative flex items-center">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              ref={fileInputRef}  // Attach the ref to the file input
+              className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 w-full"
+            />
 
-          {/* Show the selected file name and a remove button */}
-          {imageFile && (
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-gray-700">{imageFile.name}</p>
+            {/* Show the dustbin icon to remove the file */}
+            {imageFile && (
               <button
                 type="button"
                 onClick={handleRemoveFile}
-                className="text-red-600 font-semibold hover:underline flex items-center"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
               >
-                <TrashIcon className="h-6 w-6 text-red-600 hover:text-red-800" />
+                {/* Trash Icon */}
+                <TrashIcon className="h-6 w-6" />
               </button>
-            </div>
+            )}
+          </div>
+
+          {/* Show the selected file name */}
+          {imageFile && (
+            <p className="text-gray-700 mt-2">
+              {imageFile.name}
+            </p>
           )}
         </div>
 
-        <button
-          type="submit"
-          className={`w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold transition duration-300 ease-in-out transform hover:scale-105 hover:bg-purple-700 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          disabled={loading}
-        >
-          {loading ? 'Checking...' : 'Check Image'}
-        </button>
+        {/* Check Image Button: Hide if the image has been checked */}
+        {!imageChecked && (
+          <button
+            type="submit"
+            className={`w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold transition duration-300 ease-in-out transform hover:scale-105 hover:bg-purple-700 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={loading}
+          >
+            {loading ? 'Checking...' : 'Generate text'}
+          </button>
+        )}
+
+        {/* Display the associated text inside the form with the same style as "Choose an Image" */}
+        {associatedText && (
+          <div className="mt-4">
+            <label className="text-gray-700 font-semibold mb-2">
+              Associated Text
+            </label>
+            <p className="text-gray-700">{associatedText}</p>
+          </div>
+        )}
       </form>
 
-      {/* Display the associated text */}
-      {associatedText && (
-        <div className="mt-4">
-          <p className="text-green-600 font-semibold">
-            Associated Text: {associatedText}
-          </p>
-        </div>
-      )}
-     
       {/* Back Button Below Form */}
       <button
         className="mt-6 bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-600 transition duration-300 ease-in-out"
