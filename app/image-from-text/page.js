@@ -1,21 +1,23 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';  // Import the useRouter hook from Next.js
 import { supabase } from '../../lib/supabaseClient';  // Ensure the path to your Supabase client is correct
+import toast, { Toaster } from 'react-hot-toast';  // Importing react-hot-toast
 
 export default function ImageFromText() {
   const [text, setText] = useState('');  // State to store user input
   const [imageUrl, setImageUrl] = useState(null);  // State to store fetched image URL
   const [loading, setLoading] = useState(false);  // Loading state
-  const [errorMessage, setErrorMessage] = useState('');  // State to store error message
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);  // State to control button
+
+  const router = useRouter();  // Initialize the useRouter hook for navigation
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage('');  // Reset error message
 
     // Check if the input is empty
     if (text.trim() === '') {
-      setErrorMessage('Try to enter the text');
+      toast.error('Try to enter the text');
       return;
     }
 
@@ -31,7 +33,7 @@ export default function ImageFromText() {
     if (error) {
       console.error('Error fetching image:', error);
       setLoading(false);  // Stop loading on error
-      setErrorMessage("We don't have such images mapped with the text that you entered.");
+      toast.error("We don't have such images mapped with the text that you entered.");
     } else {
       let correctedImageUrl = data?.image_url || '';
       if (correctedImageUrl.includes('/public/public/')) {
@@ -40,9 +42,10 @@ export default function ImageFromText() {
     
       if (correctedImageUrl) {
         setImageUrl(correctedImageUrl);
+        toast.success('Image found!');
       } else {
         setImageUrl('No image found for this text');
-        setErrorMessage("We don't have such images mapped with the text that you entered.");
+        toast.error("We don't have such images mapped with the text that you entered.");
       }
 
       setLoading(false);  // Stop loading once done
@@ -64,6 +67,8 @@ export default function ImageFromText() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-purple-100 via-purple-300 to-purple-500 p-4">
+      <Toaster position="top-right" reverseOrder={false} />  {/* Toast notification container */}
+
       <h1 className="text-4xl font-extrabold text-white mb-8">
         Find Image by Text
       </h1>
@@ -93,13 +98,8 @@ export default function ImageFromText() {
         </button>
       </form>
 
-      {/* Error Message */}
-      {errorMessage && (
-        <p className="mt-4 text-red-600">{errorMessage}</p>
-      )}
-
       {/* Display Image if result is found */}
-      {imageUrl && !errorMessage && (
+      {imageUrl && !loading && (
         <div className="mt-6">
           {imageUrl === 'No image found for this text' ? (
             <p className="text-red-600 text-lg">{imageUrl}</p>
@@ -108,6 +108,14 @@ export default function ImageFromText() {
           )}
         </div>
       )}
+    
+      {/* Back Button Below Form */}
+      <button
+        className="mt-6 bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-600 transition duration-300 ease-in-out"
+        onClick={() => router.push('/')}  // Redirect to the homepage
+      >
+        Back to Home
+      </button>
     </div>
   );
 }

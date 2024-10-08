@@ -1,26 +1,26 @@
 'use client';
 import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';  // Import the useRouter hook from Next.js
 import { supabase } from '../../lib/supabaseClient';  // Ensure the path to your Supabase client is correct
+import { TrashIcon } from '@heroicons/react/24/outline';  // Heroicons for the dustbin icon
+import toast, { Toaster } from 'react-hot-toast';  // For toast notifications
 
 export default function UploadImage() {
   const [imageFile, setImageFile] = useState(null);  // State to store the selected image file
   const [text, setText] = useState('');  // State to store associated text
   const [loading, setLoading] = useState(false);  // Loading state
-  const [successMessage, setSuccessMessage] = useState('');  // Success message
-  const [errorMessage, setErrorMessage] = useState('');  // Error message
-
   const fileInputRef = useRef(null);  // Ref for the file input field
+
+  const router = useRouter();  // Initialize the useRouter hook
 
   // Handle image upload
   const handleImageUpload = async (e) => {
     e.preventDefault();
     setLoading(true);  // Start loading
-    setSuccessMessage('');
-    setErrorMessage('');
 
     // Check if both the image and text are provided
     if (!imageFile || text.trim() === '') {
-      setErrorMessage('Please provide both an image and associated text.');
+      toast.error('Please provide both an image and associated text.');
       setLoading(false);
       return;
     }
@@ -30,7 +30,7 @@ export default function UploadImage() {
     const duplicateCheck = await checkForDuplicates(fileName, text.trim());
 
     if (duplicateCheck) {
-      setErrorMessage(duplicateCheck);  // Display duplicate error message
+      toast.error(duplicateCheck);  // Display duplicate error message
       setLoading(false);
       return;
     }
@@ -43,7 +43,7 @@ export default function UploadImage() {
 
     if (uploadError) {
       console.error('Error uploading image:', uploadError);
-      setErrorMessage('Failed to upload image. Please try again.');
+      toast.error('Failed to upload image. Please try again.');
       setLoading(false);
       return;
     }
@@ -58,12 +58,12 @@ export default function UploadImage() {
 
     if (insertError) {
       console.error('Error inserting data:', insertError);
-      setErrorMessage('Failed to save image and text. Please try again.');
+      toast.error('Failed to save image and text. Please try again.');
       setLoading(false);
       return;
     }
 
-    setSuccessMessage('Image and text uploaded successfully!');
+    toast.success('Image and text uploaded successfully!');
     setImageFile(null);  // Clear the file input after successful upload
     setText('');  // Clear the text input
     setLoading(false);  // Stop loading
@@ -76,7 +76,7 @@ export default function UploadImage() {
   const checkForDuplicates = async (fileName, textContent) => {
     try {
       // Check for duplicate image in the database
-      const { data: imageData, error: imageError } = await supabase
+      const { data: imageData } = await supabase
         .from('image_text_pairs')
         .select('image_url')
         .like('image_url', `%${fileName}%`);
@@ -86,7 +86,7 @@ export default function UploadImage() {
       }
 
       // Check for duplicate text in the database
-      const { data: textData, error: textError } = await supabase
+      const { data: textData } = await supabase
         .from('image_text_pairs')
         .select('text_content')
         .eq('text_content', textContent);
@@ -113,12 +113,13 @@ export default function UploadImage() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';  // Clear the file input field
     }
-    setSuccessMessage('');  // Clear any previous success message
-    setErrorMessage('');  // Clear any previous error message
+    toast.success('Image removed successfully.');
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-purple-100 via-purple-300 to-purple-500 p-4">
+      <Toaster position="top-right" reverseOrder={false} />  {/* Toast notifications */}
+
       <h1 className="text-4xl font-extrabold text-white mb-8">
         Upload Image and Associate Text
       </h1>
@@ -145,9 +146,9 @@ export default function UploadImage() {
               <button
                 type="button"
                 onClick={handleRemoveFile}
-                className="text-red-600 font-semibold hover:underline"
+                className="text-red-600 font-semibold hover:underline flex items-center"
               >
-                Remove
+                <TrashIcon className="h-6 w-6 text-red-600 hover:text-red-800" />
               </button>
             </div>
           )}
@@ -175,13 +176,13 @@ export default function UploadImage() {
         </button>
       </form>
 
-      {/* Success or error messages */}
-      {successMessage && (
-        <p className="mt-4 text-green-600">{successMessage}</p>
-      )}
-      {errorMessage && (
-        <p className="mt-4 text-red-600">{errorMessage}</p>
-      )}
+      {/* Back Button Below Form */}
+      <button
+        className="mt-6 bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-600 transition duration-300 ease-in-out"
+        onClick={() => router.push('/')}  // Redirect to the homepage
+      >
+        Back to Home
+      </button>
     </div>
   );
 }
